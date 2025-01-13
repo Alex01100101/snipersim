@@ -31,6 +31,7 @@ void applicationMemCopy(void *dest, const void *src, size_t n);
 
 class Core
 {
+
    public:
 
       enum State
@@ -79,12 +80,21 @@ class Core
       };
 
       static const char * CoreStateString(State state);
+      
+        const static int num_pcs = 128;    // Number of rows in the perceptron table
+        const static int history_length = 16; // Length of the history
+        int threshold = 0;
+        int weights[num_pcs][history_length] = {}; 
+        bool state_history[history_length] = {};
+        int idleFreq, configFreq;
+        bool lastPrediction = false;
 
       Core(SInt32 id);
       ~Core();
 
       // Query and update branch predictor, return true on mispredict
       bool accessBranchPredictor(IntPtr eip, bool taken, bool indirect, IntPtr target);
+      void predictCoreStateAndUpdateFrequency(IntPtr eip);
 
       MemoryResult readInstructionMemory(IntPtr address,
             UInt32 instruction_size);

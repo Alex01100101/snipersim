@@ -16,6 +16,7 @@
 #include "stats.h"
 #include "topology_info.h"
 #include "cheetah_manager.h"
+#include "magic_server.h"
 
 #include <cstring>
 
@@ -102,6 +103,15 @@ Core::Core(SInt32 id)
          this, m_network, m_shmem_perf_model);
 
    m_performance_model = PerformanceModel::create(this);
+   
+   for (int i = 0; i < num_pcs; ++i) {
+            for (int j = 0; j < history_length; ++j) {
+                weights[i][j] = rand()%11 - 5; // Random weight between -5 and 5
+            }
+        }
+      configFreq = int(float(Sim()-> getCfg() -> getFloat("perf_model/core/frequency"))*1000);
+      idleFreq = 1000;
+    
 }
 
 Core::~Core()
@@ -195,6 +205,8 @@ Core::accessBranchPredictor(IntPtr eip, bool taken, bool indirect, IntPtr target
 {
    PerformanceModel *prfmdl = getPerformanceModel();
    BranchPredictor *bp = prfmdl->getBranchPredictor();
+   
+   predictCoreStateAndUpdateFrequency(eip);
 
    if (bp)
    {
@@ -206,6 +218,49 @@ Core::accessBranchPredictor(IntPtr eip, bool taken, bool indirect, IntPtr target
    {
       return false;
    }
+}
+
+void 
+Core::predictCoreStateAndUpdateFrequency(IntPtr eip)
+{
+      int pc_index = eip % num_pcs; 
+// If prediction is wrong, update the weights accordingly
+        int error = lastPrediction == (getState() == State::IDLE);
+        
+        if (error) {
+            for (int i = 0; i < history_length; ++i) {
+              if(state_history[i] == lastPrediction)
+                weights[pc_index][i] ++;
+              else 
+                weights[pc_index][i] --;
+            }
+        }
+                
+        // Update the global history
+        for (int i = history_length - 1; i > 0; --i) {
+            state_history[i] = state_history[i - 1];
+        }
+
+        state_history[0] = getState() == State::IDLE;
+                
+      // Weighted sum calculation -> prediction
+
+
+        int weighted_sum = 0;
+        for (int i = 0; i < history_length; ++i) {
+            weighted_sum += weights[pc_index][i] * state_history[i];
+        }
+        
+        lastPrediction = (weighted_sum > 0) ? true : false;
+        
+        // Change the frequency based on the prediction
+      if (lastPrediction)
+        Sim()->getMagicServer()->setFrequency(getId(), idleFreq);
+      else
+      {
+        Sim()->getMagicServer()->setFrequency(getId(),configFreq);
+        }
+        
 }
 
 MemoryResult
