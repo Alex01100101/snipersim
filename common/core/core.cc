@@ -224,43 +224,48 @@ void
 Core::predictCoreStateAndUpdateFrequency(IntPtr eip)
 {
       int pc_index = eip % num_pcs; 
-// If prediction is wrong, update the weights accordingly
-        int error = lastPrediction == (getState() == State::IDLE);
-        
-        if (error) {
-            for (int i = 0; i < history_length; ++i) {
-              if(state_history[i] == lastPrediction)
-                weights[pc_index][i] ++;
-              else 
-                weights[pc_index][i] --;
+          bool prediction = predictions[pc_index];
+        int actual_freq = Sim()->getMagicServer()->getFrequency(getId());
+        bool actualState = actual_freq == idleFreq;
+        if (actualState != prediction)
+        {
+          if (prediction)
+            Sim()->getMagicServer()->setFrequency(getId(), idleFreq);
+          else
+          {
+            Sim()->getMagicServer()->setFrequency(getId(),configFreq);
             }
         }
-                
+            
+}
+
+void
+Core::updateHistoryAndTrain(bool value)
+{
+for (int i = 0; i < num_pcs; ++i) {
+  if(predictions[i] != value)
+  {
+  for (int j = 0; j < history_length; ++j) {
+              if(state_history[j] == value)
+                weights[i][j] ++;
+              else 
+                weights[i][j] --;
+            }
+        }
+    
+    int weighted_sum = 0;
+        for (int j= 0; j < history_length; ++j) {
+            weighted_sum += weights[i][j] * (state_history[j] ? 1 : (-1));
+        }
+        bool prediction = (weighted_sum > 0) ? true : false;
+        predictions[i] = prediction;
+        }
         // Update the global history
         for (int i = history_length - 1; i > 0; --i) {
             state_history[i] = state_history[i - 1];
         }
 
-        state_history[0] = getState() == State::IDLE;
-                
-      // Weighted sum calculation -> prediction
-
-
-        int weighted_sum = 0;
-        for (int i = 0; i < history_length; ++i) {
-            weighted_sum += weights[pc_index][i] * state_history[i];
-        }
-        
-        lastPrediction = (weighted_sum > 0) ? true : false;
-        
-        // Change the frequency based on the prediction
-      if (lastPrediction)
-        Sim()->getMagicServer()->setFrequency(getId(), idleFreq);
-      else
-      {
-        Sim()->getMagicServer()->setFrequency(getId(),configFreq);
-        }
-        
+        state_history[0] = value;
 }
 
 MemoryResult

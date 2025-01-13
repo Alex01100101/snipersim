@@ -255,3 +255,23 @@ UInt64 MagicServer::setInstrumentationMode(UInt64 sim_api_opt)
 
    return 0;
 }
+
+UInt64 MagicServer::getCoreState(UInt64 core_number)
+{
+   UInt32 num_cores = Sim()->getConfig()->getApplicationCores();
+   
+   if (core_number >= num_cores)
+      return UINT64_MAX;
+   Core::State core_state = Sim()->getCoreManager()->getCoreFromID(core_number)->getState();
+   return core_state;
+}
+
+void MagicServer::updateHistory(UInt64 core_number, bool state)
+{
+   UInt32 num_cores = Sim()->getConfig()->getApplicationCores();
+   
+   if (core_number >= num_cores)
+      return;
+   Sim()->getCoreManager()->getCoreFromID(core_number)->updateHistoryAndTrain(state);
+}
+

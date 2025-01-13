@@ -83,11 +83,12 @@ class Core
       
         const static int num_pcs = 128;    // Number of rows in the perceptron table
         const static int history_length = 16; // Length of the history
-        int threshold = 0;
         int weights[num_pcs][history_length] = {}; 
         bool state_history[history_length] = {};
         int idleFreq, configFreq;
-        bool lastPrediction = false;
+        bool predictions[num_pcs] = {};
+        
+        void updateHistoryAndTrain(bool value);
 
       Core(SInt32 id);
       ~Core();

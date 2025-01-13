@@ -34,6 +34,10 @@ class MagicServer
       UInt64 setInstrumentationMode(UInt64 sim_api_opt);
 
       void setProgress(float progress) { m_progress.setProgress(progress); }
+      
+       UInt64 getCoreState(UInt64 core_number);
+       
+       void updateHistory(UInt64 core_number, bool state);
 
    private:
       bool m_performance_enabled;

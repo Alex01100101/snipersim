@@ -5,6 +5,6 @@ $(TARGET): $(TARGET).o
 	$(CC) $(TARGET).o -lm $(SNIPER_LDFLAGS) -o $(TARGET)
 
 run_$(TARGET):
-	../../run-sniper -v -n 1 -c gainestown --roi -- ./fft -p 1
+	../../run-sniper -v -s update_state_history -n 8 -c gainestown --roi --power -- ./fft -p 8
 
 CLEAN_EXTRA=viz
